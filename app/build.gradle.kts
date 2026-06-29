@@ -5,20 +5,19 @@ plugins {
 
 android {
     namespace = "com.nls.handring"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.nls.handring"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = false
         }
     }
 
@@ -33,8 +32,8 @@ android {
 }
 
 dependencies {
-    implementation("com.github.mik3y:usb-serial-for-android:3.7.3")
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("com.github.mik3y:usb-serial-for-android:3.6.1")
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
 }
