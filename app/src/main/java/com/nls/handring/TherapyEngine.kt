@@ -5,16 +5,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbManager
-import com.hoho.android.usbserial.driver.UsbSerialDriver
-import com.hoho.android.usbserial.driver.UsbSerialPort
-import com.hoho.android.usbserial.driver.UsbSerialProber
+import android.hardware.usb.*
 import kotlinx.coroutines.*
 
 class TherapyEngine(private val ctx: Context) {
-    private var port: UsbSerialPort? = null
-    private var driver: UsbSerialDriver? = null
+    private var connection: UsbDeviceConnection? = null
+    private var epOut: UsbEndpoint? = null
+    private var device: UsbDevice? = null
     private var job: Job? = null
     private var cmds: List<Cmd> = emptyList()
     private var index = 0
@@ -47,46 +44,92 @@ class TherapyEngine(private val ctx: Context) {
 
     fun connect(callback: (Boolean, String) -> Unit) {
         val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
-        val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
-        if (availableDrivers.isEmpty()) {
+        val devices = usbManager.deviceList.values
+
+        // Find FTDI FT232R: VID=0x0403 PID=0x6001
+        device = devices.find { it.vendorId == 0x0403 && it.productId == 0x6001 }
+            ?: devices.firstOrNull { it.vendorId == 0x0403 }
+
+        if (device == null) {
             callback(false, "未检测到 FTDI 设备\n请确认 OTG 线已连接手环")
             return
         }
-        driver = availableDrivers[0]
-        val device = driver!!.device
 
         if (!usbManager.hasPermission(device)) {
             permCallback = { granted ->
-                if (granted) openPort(callback) else callback(false, "USB 权限被拒绝")
+                if (granted) openDevice(callback) else callback(false, "USB 权限被拒绝")
             }
             val pi = PendingIntent.getBroadcast(ctx, 0, Intent(actionUsbPermission),
                 PendingIntent.FLAG_IMMUTABLE)
-            usbManager.requestPermission(device, pi)
+            usbManager.requestPermission(device!!, pi)
             return
         }
-        openPort(callback)
+        openDevice(callback)
     }
 
-    private fun openPort(callback: (Boolean, String) -> Unit) {
+    private fun openDevice(callback: (Boolean, String) -> Unit) {
         try {
             val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
-            val conn = usbManager.openDevice(driver!!.device)
-            port = driver!!.ports[0]
-            port!!.open(conn)
-            port!!.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+            connection = usbManager.openDevice(device!!) ?: run {
+                callback(false, "无法打开 USB 设备")
+                return
+            }
+
+            // Find bulk OUT endpoint
+            for (i in 0 until device!!.interfaceCount) {
+                val iface = device!!.getInterface(i)
+                if (!connection!!.claimInterface(iface, true)) continue
+
+                for (j in 0 until iface.endpointCount) {
+                    val ep = iface.getEndpoint(j)
+                    if (ep.direction == UsbConstants.USB_DIR_OUT && ep.type == UsbConstants.USB_ENDPOINT_XFER_BULK) {
+                        epOut = ep
+                        break
+                    }
+                }
+                if (epOut != null) break
+            }
+
+            if (epOut == null) {
+                connection!!.close()
+                connection = null
+                callback(false, "未找到 USB 输出端点")
+                return
+            }
+
+            // Configure baud rate 115200 via FTDI control transfer
+            configureFtdi()
+
             isConnected = true
             callback(true, "手环已连接")
         } catch (e: Exception) {
             isConnected = false
+            try { connection?.close() } catch (_: Exception) {}
+            connection = null
             callback(false, "连接失败: ${e.message}")
         }
     }
 
+    private fun configureFtdi() {
+        // Reset FTDI
+        connection?.controlTransfer(0x40, 0, 0, 1, null, 0, 1000) ?: return
+        connection?.controlTransfer(0x40, 0, 0, 0, null, 0, 1000) ?: return
+        // Set 115200 baud (divisor = 3000000/115200 = 26)
+        val divisor = 3000000 / 115200
+        val buf = byteArrayOf(
+            (divisor and 0xFF).toByte(),
+            ((divisor shr 8) and 0xFF).toByte(),
+            0x00, 0x00, 0x08 // 8N1
+        )
+        connection?.controlTransfer(0x40, 0x03, 0x4138, 0, buf, buf.size, 1000)
+    }
+
     fun disconnect() {
         stop()
-        try { port?.close() } catch (_: Exception) {}
-        port = null
-        driver = null
+        try { connection?.close() } catch (_: Exception) {}
+        connection = null
+        device = null
+        epOut = null
         isConnected = false
         onStatus?.invoke("已断开")
     }
@@ -128,7 +171,7 @@ class TherapyEngine(private val ctx: Context) {
         buf[13] = cmd.b13.toByte()
         buf[15] = cmd.b15.toByte()
         try {
-            port?.write(buf, 500)
+            connection?.bulkTransfer(epOut, buf, buf.size, 1000)
         } catch (_: Exception) {}
     }
 
