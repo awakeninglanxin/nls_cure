@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity() {
         playBtn.setOnClickListener {
             if (engine.isPlaying) { engine.stop(); updateUI(); return@setOnClickListener }
             val key = selProg ?: return@setOnClickListener
-            engine.interval = intervalSeek.progress.toLong()
+            engine.setInterval(intervalSeek.progress.toLong())
             engine.play(key, selPower, looping)
             updateUI()
         }
