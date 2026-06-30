@@ -53,7 +53,7 @@
         <!-- Progress + Info -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:gravity="center_vertical"
-            android:padding="8dp 0" android:layout_marginTop="8dp">
+            android:paddingTop="8dp" android:paddingBottom="8dp" android:layout_marginTop="8dp">
             <ProgressBar android:id="@+id/progress_bar"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                 android:layout_width="0dp" android:layout_height="5dp"
