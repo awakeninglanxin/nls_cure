@@ -133,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         }
         intervalSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar, v: Int, b: Boolean) {
-                intervalLabel.text = "${v}ms"
+                intervalLabel.text = String.format("%.2fs", v / 1000.0)
                 engine.setInterval(v.toLong())
             }
             override fun onStartTrackingTouch(s: SeekBar) {}

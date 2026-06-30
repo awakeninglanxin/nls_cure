@@ -71,7 +71,7 @@
                 android:text="间隔" android:textColor="#888" android:textSize="12sp" android:layout_marginEnd="8dp"/>
             <SeekBar android:id="@+id/interval_seek" android:layout_width="0dp"
                 android:layout_height="wrap_content" android:layout_weight="1"
-                android:max="2000" android:progress="500"/>
+                android:max="13050" android:progress="1450"/>
             <TextView android:id="@+id/interval_label" android:layout_width="wrap_content"
                 android:layout_height="wrap_content" android:text="500ms" android:textColor="#e0e0e0"
                 android:textSize="12sp" android:minWidth="48dp"/>
