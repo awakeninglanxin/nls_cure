@@ -168,6 +168,8 @@ class TherapyEngine(private val ctx: Context) {
         try {
             val zero = ByteArray(128)
             connection?.bulkTransfer(epOut, zero, zero.size, 500)
+            Thread.sleep(50)
+            connection?.bulkTransfer(epOut, zero, zero.size, 500)
         } catch (_: Exception) {}
         index = 0; cmds = emptyList()
         onProgress?.invoke(0, 0)

@@ -115,10 +115,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
         playBtn.setOnClickListener {
-            val key = selProg ?: return@setOnClickListener
+            val key = selProg
             if (engine.isPlaying && engine.isPaused) { engine.resume(); updateUI(); return@setOnClickListener }
-            engine.setInterval(intervalSeek.progress.toLong())
-            engine.setRepeat(repeatSeek.progress)
+            if (engine.isPlaying) { engine.stop(); updateUI(); return@setOnClickListener }
+            if (key == null) return@setOnClickListener
             engine.playProgram(key, selPower, looping)
             updateUI()
         }
@@ -127,18 +127,23 @@ class MainActivity : AppCompatActivity() {
         loopBtn.setOnClickListener { looping = !looping; loopBtn.text = if (looping) "循环" else "单次" }
         playAllBtn.setOnClickListener {
             if (engine.isPlaying && engine.isPaused) { engine.resume(); updateUI(); return@setOnClickListener }
-            engine.setInterval(intervalSeek.progress.toLong())
-            engine.setRepeat(repeatSeek.progress)
+            if (engine.isPlaying) { engine.stop(); updateUI(); return@setOnClickListener }
             engine.playAllPrograms(looping)
             updateUI()
         }
         intervalSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar, v: Int, b: Boolean) { intervalLabel.text = "${v}ms" }
+            override fun onProgressChanged(s: SeekBar, v: Int, b: Boolean) {
+                intervalLabel.text = "${v}ms"
+                engine.setInterval(v.toLong())
+            }
             override fun onStartTrackingTouch(s: SeekBar) {}
             override fun onStopTrackingTouch(s: SeekBar) {}
         })
         repeatSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar, v: Int, b: Boolean) { repeatLabel.text = "×$v" }
+            override fun onProgressChanged(s: SeekBar, v: Int, b: Boolean) {
+                repeatLabel.text = "×$v"
+                engine.setRepeat(v)
+            }
             override fun onStartTrackingTouch(s: SeekBar) {}
             override fun onStopTrackingTouch(s: SeekBar) {}
         })
