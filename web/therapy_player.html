@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NLS 手环疗愈</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --card: #14141f;
+  --card2: #1a1a2e;
+  --accent: #00e5a0;
+  --accent2: #7c4dff;
+  --danger: #ff5252;
+  --text: #e0e0e0;
+  --text2: #888;
+  --border: #252540;
+  --radius: 16px;
+  --glow: 0 0 20px rgba(0,229,160,0.15);
+  --glow2: 0 0 20px rgba(124,77,255,0.15);
+}
+.light {
+  --bg: #f5f5fa;
+  --card: #ffffff;
+  --card2: #f0f0f8;
+  --accent: #00a878;
+  --accent2: #6c3ce0;
+  --danger: #e53935;
+  --text: #1a1a2e;
+  --text2: #666;
+  --border: #e0e0e8;
+  --glow: 0 0 20px rgba(0,168,120,0.12);
+  --glow2: 0 0 20px rgba(108,60,224,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
+}
+.container { max-width: 500px; margin:0 auto; padding: 16px; }
+
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; margin-bottom: 12px;
+}
+.header h1 {
+  font-size: 20px; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.header-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.icon-btn:hover { border-color: var(--accent); }
+.icon-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+/* Status bar */
+.status-bar {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-radius: var(--radius); margin-bottom: 16px;
+  background: var(--card); border: 1px solid var(--border);
+}
+.status-dot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  background: #555; transition: all 0.3s;
+}
+.status-dot.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.status-dot.play { background: var(--accent); animation: pulse 1s infinite; }
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 5px var(--accent); }
+  50% { box-shadow: 0 0 20px var(--accent), 0 0 30px var(--accent); }
+}
+.status-text { font-size: 14px; font-weight: 500; flex: 1; }
+.status-sub { font-size: 11px; color: var(--text2); }
+
+/* Section title */
+.section-title {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text2); margin: 16px 0 8px; padding-left: 4px;
+}
+
+/* Connect button */
+.connect-btn {
+  width: 100%; padding: 16px; border-radius: var(--radius);
+  border: none; font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: all 0.3s; color: #000;
+}
+.connect-btn.connect { background: linear-gradient(135deg, var(--accent), #00c9a7); }
+.connect-btn.disconnect { background: var(--danger); color: #fff; }
+.connect-btn:active { transform: scale(0.98); }
+
+/* Program list */
+.program-list { display: flex; flex-direction: column; gap: 8px; max-height: 55vh; overflow-y: auto; }
+.program-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; cursor: pointer;
+  transition: all 0.25s; position: relative; overflow: hidden;
+}
+.program-card:active { transform: scale(0.98); }
+.program-card.selected {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+  background: var(--card2);
+}
+.program-card.playing {
+  border-color: var(--accent);
+  box-shadow: 0 0 25px rgba(0,229,160,0.25);
+}
+.program-card .top-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.program-card .organ {
+  font-size: 15px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.program-card .freq {
+  font-size: 12px; color: var(--accent); font-family: monospace;
+  background: rgba(0,229,160,0.08); padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
+}
+.program-card .meta {
+  font-size: 11px; color: var(--text2); margin-top: 4px;
+  display: flex; gap: 12px;
+}
+.progress-bar {
+  height: 3px; background: var(--border); border-radius: 2px;
+  margin-top: 10px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width 0.3s; width: 0%;
+}
+
+/* Power selector */
+.power-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.power-chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text); cursor: pointer; transition: all 0.2s;
+}
+.power-chip:hover { border-color: var(--accent2); }
+.power-chip.selected { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+
+/* Controls */
+.controls {
+  display: flex; gap: 10px; margin-top: 12px;
+}
+.ctrl-btn {
+  flex: 1; padding: 14px; border-radius: 14px; border: none;
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ctrl-btn:active { transform: scale(0.96); }
+.ctrl-btn.play-btn {
+  background: linear-gradient(135deg, var(--accent), #00c9a7);
+  color: #000; box-shadow: var(--glow);
+}
+.ctrl-btn.play-btn:disabled { opacity: 0.4; }
+.ctrl-btn.stop-btn {
+  background: var(--danger); color: #fff;
+}
+.ctrl-btn.loop-btn {
+  background: var(--card); color: var(--text); border: 1px solid var(--border); flex: 0.5;
+}
+.ctrl-btn.loop-btn.active { border-color: var(--accent); color: var(--accent); }
+
+/* Interval slider */
+.interval-row {
+  display: flex; align-items: center; gap: 10px; padding: 12px;
+  background: var(--card); border-radius: 14px; margin-top: 12px;
+  border: 1px solid var(--border);
+}
+.interval-row label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+.interval-row input[type=range] { flex:1; accent-color: var(--accent); }
+.interval-row .val { font-size: 13px; font-weight: 600; min-width: 40px; text-align: right; }
+
+/* Log */
+.log-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 12px; margin-top: 16px;
+  max-height: 150px; overflow-y: auto;
+  font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 11px;
+  line-height: 1.6; color: var(--text2);
+}
+.log-box::-webkit-scrollbar { width: 3px; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--card2); border: 1px solid var(--accent);
+  color: var(--text); padding: 10px 24px; border-radius: 20px;
+  font-size: 13px; z-index: 100; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Scrollable area */
+.scroll-area { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>💎 NLS 手环疗愈</h1>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+      <button class="icon-btn" onclick="fetchLog()">📋</button>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <div>
+      <div class="status-text" id="statusText">未连接</div>
+      <div class="status-sub" id="statusSub"></div>
+    </div>
+  </div>
+
+  <!-- Connect -->
+  <button class="connect-btn connect" id="connectBtn" onclick="toggleConnect()">
+    ⚡ 连接 COM4 (手环)
+  </button>
+
+  <!-- Programs -->
+  <div class="section-title">🧬 器官疗愈方案</div>
+  <div class="scroll-area">
+    <div class="program-list" id="programList"></div>
+  </div>
+
+  <!-- Power Level -->
+  <div class="section-title">⚡ 功率档位 <span style="font-weight:400;font-size:11px;margin-left:4px" id="powerLabel">(自动)</span></div>
+  <div class="power-chips" id="powerChips"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="ctrl-btn play-btn" id="playBtn" onclick="togglePlay()" disabled>
+      ▶ 开始疗愈
+    </button>
+    <button class="ctrl-btn loop-btn active" id="loopBtn" onclick="toggleLoop()">
+      🔁 循环
+    </button>
+    <button class="ctrl-btn stop-btn" id="stopBtn" onclick="stopTherapy()" style="display:none">
+      ⏹ 停止
+    </button>
+  </div>
+
+  <!-- Play All -->
+  <button class="connect-btn connect" id="playAllBtn" onclick="playAll()" style="margin-top:8px;background:linear-gradient(135deg,var(--accent2),#b388ff)">
+    🧬 全部器官疗愈 (1087条原始命令)
+  </button>
+
+  <!-- Interval -->
+  <div class="interval-row">
+    <label>⏱ 间隔</label>
+    <input type="range" min="1.45" max="13.05" step="1.45" value="1.45" id="intervalSlider" onchange="setInterval(this.value)">
+    <span class="val" id="intervalVal">1.45s</span>
+  </div>
+
+  <!-- Repeat -->
+  <div class="interval-row">
+    <label>🔂 重复</label>
+    <input type="range" min="1" max="20" step="1" value="1" id="repeatSlider" onchange="setRepeat(this.value)">
+    <span class="val" id="repeatVal">×1</span>
+  </div>
+
+  <!-- Duration -->
+  <div class="interval-row" id="durRow" style="display:none">
+    <label>⏳ 总时长</label>
+    <span class="val" id="durVal" style="flex:1;text-align:left;font-size:14px;color:var(--accent)">—</span>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar" style="margin-top:12px">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-box" id="logBox" style="display:none">
+    <div id="logContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE ============
+const API = '';  // same origin
+let state = {
+  connected: false, playing: false, loop: true,
+  programs: {}, selectedProgram: null, selectedPower: null,
+  interval: 1.45, theme: 'dark', repeat: 1
+};
+
+// ============ INIT ============
+async function init() {
+  const saved = localStorage.getItem('nls_theme');
+  if (saved) { state.theme = saved; applyTheme(); }
+  document.getElementById('intervalSlider').value = state.interval;
+  document.getElementById('intervalVal').textContent = state.interval + 's';
+  document.getElementById('repeatSlider').value = state.repeat;
+  document.getElementById('repeatVal').textContent = '×' + state.repeat;
+  await loadPrograms();
+  pollStatus();
+  setInterval(pollStatus, 2000);
+}
+
+function applyTheme() {
+  if (state.theme === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '☀️';
+  } else {
+    document.body.classList.remove('light');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+}
+
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('nls_theme', state.theme);
+  applyTheme();
+}
+
+// ============ API ============
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+// ============ PROGRAMS ============
+async function loadPrograms() {
+  try {
+    const data = await api('/api/programs');
+    state.programs = data;
+    renderPrograms();
+  } catch(e) {
+    toast('无法加载方案列表');
+  }
+}
+
+function renderPrograms() {
+  const list = document.getElementById('programList');
+  const programs = Object.values(state.programs);
+  if (programs.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px">暂无方案</div>';
+    return;
+  }
+
+  // Sort by b9 (extracted from key)
+  const sorted = programs.sort((a,b) => {
+    const aNum = parseInt(a.name.split('_')[1]) || 0;
+    const bNum = parseInt(b.name.split('_')[1]) || 0;
+    return aNum - bNum;
+  });
+
+  list.innerHTML = sorted.map(p => {
+    const sel = state.selectedProgram === p.name ? ' selected' : '';
+    const play = state.playing && state.selectedProgram === p.name ? ' playing' : '';
+    const powerCount = p.power_levels.length;
+    return `
+      <div class="program-card${sel}${play}" onclick="selectProgram('${p.name}')">
+        <div class="top-row">
+          <span class="organ">${p.organ}</span>
+          <span class="freq">${p.freq_range}</span>
+        </div>
+        <div class="meta">
+          <span>📡 ${p.command_count} 条命令</span>
+          <span>⚡ ${powerCount} 档功率</span>
+        </div>
+        <div class="progress-bar" id="prog-${p.name}" style="${state.playing && state.selectedProgram === p.name ? '' : 'display:none'}">
+          <div class="progress-fill" id="fill-${p.name}" style="width:0%"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectProgram(key) {
+  state.selectedProgram = key;
+  state.selectedPower = null;
+  renderPrograms();
+  renderPowerChips();
+  updatePlayButton();
+  updateDur();
+}
+
+function renderPowerChips() {
+  const container = document.getElementById('powerChips');
+  const label = document.getElementById('powerLabel');
+  if (!state.selectedProgram || !state.programs[state.selectedProgram]) {
+    container.innerHTML = '<span style="color:var(--text2);font-size:12px">请先选择器官方案</span>';
+    label.textContent = '';
+    return;
+  }
+
+  const prog = state.programs[state.selectedProgram];
+  const levels = prog.power_levels;
+
+  label.textContent = `(${levels.length} 档)`;
+
+  container.innerHTML = levels.map(l => {
+    const sel = state.selectedPower === l ? ' selected' : '';
+    return `<span class="power-chip${sel}" onclick="selectPower(${l})">${l}</span>`;
+  }).join('');
+
+  if (levels.length === 0) {
+    container.innerHTML = '<span style="color:var(--text2);font-size:12px">无可调功率</span>';
+  }
+}
+
+function selectPower(level) {
+  state.selectedPower = state.selectedPower === level ? null : level;
+  renderPowerChips();
+}
+
+// ============ CONNECTION ============
+async function toggleConnect() {
+  if (state.connected) {
+    await api('/api/disconnect');
+    state.connected = false;
+    updateConnectUI();
+  } else {
+    const r = await api('/api/connect');
+    state.connected = r.ok;
+    updateConnectUI();
+    toast(r.message);
+  }
+}
+
+function updateConnectUI() {
+  const btn = document.getElementById('connectBtn');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+
+  if (state.connected) {
+    dot.className = 'status-dot on';
+    txt.textContent = 'COM4 已连接';
+    btn.textContent = '🔌 断开手环';
+    btn.className = 'connect-btn disconnect';
+  } else {
+    dot.className = 'status-dot';
+    txt.textContent = '未连接';
+    btn.textContent = '⚡ 连接 COM4 (手环)';
+    btn.className = 'connect-btn connect';
+  }
+  updatePlayButton();
+}
+
+function updatePlayButton() {
+  const btn = document.getElementById('playBtn');
+  if (!state.connected) { btn.disabled = true; return; }
+  if (!state.selectedProgram) { btn.disabled = true; return; }
+  btn.disabled = false;
+}
+
+// ============ THERAPY CONTROL ============
+async function togglePlay() {
+  if (state.playing) {
+    await stopTherapy();
+    return;
+  }
+  if (!state.selectedProgram) { toast('请先选择器官方案'); return; }
+  if (!state.connected) { toast('请先连接手环'); return; }
+
+  const r = await api('/api/play', 'POST', {
+    program: state.selectedProgram,
+    power: state.selectedPower,
+    loop: state.loop,
+    repeat: state.repeat
+  });
+
+  if (r.ok) {
+    state.playing = true;
+    toast('▶ 疗愈已开始!');
+    updatePlayUI();
+  } else {
+    toast('❌ ' + r.message);
+  }
+}
+
+async function stopTherapy() {
+  await api('/api/stop');
+  state.playing = false;
+  updatePlayUI();
+  document.getElementById('progressFill').style.width = '0%';
+}
+
+function updatePlayUI() {
+  const playBtn = document.getElementById('playBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const dot = document.getElementById('statusDot');
+  const playAllBtn = document.getElementById('playAllBtn');
+
+  if (state.playing) {
+    playBtn.style.display = 'none';
+    stopBtn.style.display = 'flex';
+    if (playAllBtn) playAllBtn.disabled = true;
+    dot.className = 'status-dot play';
+  } else {
+    playBtn.style.display = 'flex';
+    stopBtn.style.display = 'none';
+    if (playAllBtn) playAllBtn.disabled = false;
+    dot.className = state.connected ? 'status-dot on' : 'status-dot';
+  }
+  renderPrograms();
+}
+
+async function playAll() {
+  if (!state.connected) { toast('请先连接手环'); return; }
+  if (state.playing) return;
+  const r = await api('/api/play-all', 'POST', { loop: state.loop, repeat: state.repeat });
+  if (r.ok) {
+    state.playing = true;
+    state.selectedProgram = null;
+    toast('🧬 全部器官疗愈开始! 1087条命令');
+    updatePlayUI();
+  } else {
+    toast('❌ ' + r.message);
+  }
+}
+
+function toggleLoop() {
+  state.loop = !state.loop;
+  const btn = document.getElementById('loopBtn');
+  if (state.loop) {
+    btn.className = 'ctrl-btn loop-btn active';
+    btn.textContent = '🔁 循环';
+  } else {
+    btn.className = 'ctrl-btn loop-btn';
+    btn.textContent = '➡ 单次';
+  }
+}
+
+function setInterval(val) {
+  state.interval = parseFloat(val);
+  document.getElementById('intervalVal').textContent = val + 's';
+  api('/api/interval', 'POST', { value: state.interval });
+  updateDur();
+}
+
+function setRepeat(val) {
+  state.repeat = parseInt(val);
+  document.getElementById('repeatVal').textContent = '×' + val;
+  updateDur();
+}
+
+function updateDur() {
+  const row = document.getElementById('durRow');
+  const el = document.getElementById('durVal');
+  if (!state.selectedProgram || !state.programs[state.selectedProgram]) {
+    row.style.display = 'none'; return;
+  }
+  const n = state.programs[state.selectedProgram].command_count || 0;
+  if (!n) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  const sec = n * state.interval * state.repeat;
+  const min = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  el.textContent = min + '分' + s + '秒  (' + n + '条×' + state.interval.toFixed(2) + 's×' + state.repeat + ')';
+}
+
+// ============ STATUS POLLING ============
+async function pollStatus() {
+  try {
+    const s = await api('/api/status');
+    state.connected = s.connected;
+    state.playing = s.playing;
+
+    updateConnectUI();
+    updatePlayUI();
+    document.getElementById('statusSub').textContent =
+      s.playing ? `播放中: ${s.current}/${s.total}` : '';
+
+    // Update progress
+    if (s.playing && s.total > 0) {
+      const pct = (s.current / s.total * 100).toFixed(1);
+      document.getElementById('progressFill').style.width = pct + '%';
+    } else if (!s.playing) {
+      document.getElementById('progressFill').style.width = '0%';
+    }
+
+    if (s.program && state.selectedProgram !== s.program) {
+      state.selectedProgram = s.program;
+      renderPrograms();
+      renderPowerChips();
+    }
+  } catch(e) {
+    // server might not be running yet
+  }
+}
+
+// ============ LOG ============
+async function fetchLog() {
+  const box = document.getElementById('logBox');
+  const content = document.getElementById('logContent');
+  if (box.style.display === 'none') {
+    box.style.display = 'block';
+    try {
+      const r = await api('/api/log');
+      content.innerHTML = r.log.slice(-30).join('<br>') || '(空)';
+    } catch(e) { content.textContent = '无法获取日志'; }
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// ============ TOAST ============
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show';
+  setTimeout(() => { el.className = 'toast'; }, 2000);
+}
+
+// ============ BOOT ============
+init();
+</script>
+</body>
+</html>

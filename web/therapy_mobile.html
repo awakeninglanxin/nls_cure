@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<title>NLS 手环疗愈</title>
+<style>
+:root{--bg:#0a0a0f;--card:#14141f;--card2:#1a1a2e;--accent:#00e5a0;--accent2:#7c4dff;--danger:#ff5252;--text:#e0e0e0;--text2:#888;--border:#252540;--radius:14px;--glow:0 0 20px rgba(0,229,160,0.15)}
+.light{--bg:#f5f5fa;--card:#fff;--card2:#f0f0f8;--accent:#00a878;--accent2:#6c3ce0;--danger:#e53935;--text:#1a1a2e;--text2:#666;--border:#e0e0e8;--glow:0 0 20px rgba(0,168,120,0.12)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:all .3s;-webkit-tap-highlight-color:transparent}
+.container{max-width:500px;margin:0 auto;padding:16px 16px 100px}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 0;margin-bottom:12px;position:sticky;top:0;background:var(--bg);z-index:10}
+.header h1{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn:active{transform:scale(.9)}
+
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--radius);margin-bottom:12px;background:var(--card);border:1px solid var(--border)}
+.status-dot{width:13px;height:13px;border-radius:50%;background:#555;transition:all .3s;flex-shrink:0}
+.status-dot.on{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.status-dot.play{background:var(--accent);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 5px var(--accent)}50%{box-shadow:0 0 25px var(--accent)}}
+.status-text{font-size:14px;font-weight:500;flex:1}
+.status-sub{font-size:11px;color:var(--text2)}
+
+.connect-btn{width:100%;padding:14px;border-radius:var(--radius);border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .25s;color:#000;margin-bottom:10px}
+.connect-btn.connect{background:linear-gradient(135deg,var(--accent),#00c9a7)}
+.connect-btn.disconnect{background:var(--danger);color:#fff}
+.connect-btn:active{transform:scale(.97)}
+
+.section-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin:12px 0 6px;padding-left:4px}
+.section-title small{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}
+
+.program-list{display:flex;flex-direction:column;gap:5px;max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.program-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:11px 13px;cursor:pointer;transition:all .2s}
+.program-card:active{transform:scale(.98)}
+.program-card.sel{border-color:var(--accent);box-shadow:var(--glow);background:var(--card2)}
+.program-card .r1{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.program-card .organ{font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.program-card .freq{font-size:10px;color:var(--accent);font-family:monospace;background:rgba(0,229,160,.08);padding:2px 8px;border-radius:5px;white-space:nowrap;flex-shrink:0}
+.program-card .r2{display:flex;gap:10px;margin-top:4px;font-size:10px;color:var(--text2)}
+
+.freq-info{font-size:10px;color:var(--accent2);font-family:monospace;padding:4px 8px;min-height:18px;margin-top:4px}
+
+.progress-bar{height:3px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);transition:width .3s;width:0}
+
+.power-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:90px;overflow-y:auto}
+.power-chip{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:all .15s;min-width:34px;text-align:center}
+.power-chip.on{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.power-chip:active{background:var(--accent2);color:#fff}
+
+.controls{display:flex;gap:8px;margin-top:10px}
+.ctrl-btn{flex:1;padding:12px;border-radius:14px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px}
+.ctrl-btn:active{transform:scale(.96)}
+.ctrl-btn:disabled{opacity:.35;pointer-events:none}
+.ctrl-btn.play{background:linear-gradient(135deg,var(--accent),#00c9a7);color:#000;box-shadow:var(--glow)}
+.ctrl-btn.stop{background:var(--danger);color:#fff}
+.ctrl-btn.loop{flex:.35;background:var(--card);color:var(--text);border:1px solid var(--border)}
+.ctrl-btn.loop.on{border-color:var(--accent);color:var(--accent)}
+.ctrl-btn.all{background:linear-gradient(135deg,var(--accent2),#b388ff);color:#fff;font-size:13px;margin-top:8px;width:100%;flex:none;padding:14px;border-radius:14px;border:none;font-weight:600;cursor:pointer}
+
+.slider-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:12px;margin-top:8px;border:1px solid var(--border)}
+.slider-row label{font-size:11px;color:var(--text2);white-space:nowrap}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-row .val{font-size:11px;font-weight:600;min-width:32px;text-align:right}
+
+.log-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:10px;max-height:120px;overflow-y:auto;font-family:monospace;font-size:10px;line-height:1.5;color:var(--text2);display:none}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--accent);color:var(--text);padding:10px 22px;border-radius:20px;font-size:12px;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <h1>💎 NLS 手环疗愈</h1>
+  <button class="icon-btn" onclick="toggleTheme()" id="t">🌙</button>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="dot"></div>
+  <div><div class="status-text" id="st">未连接</div><div class="status-sub" id="ss"></div></div>
+  <button class="icon-btn" onclick="toggleLog()" style="font-size:14px">📋</button>
+</div>
+
+<button class="connect-btn connect" id="cb" onclick="toggleConnect()">🔌 连接 COM4</button>
+
+<button class="ctrl-btn all" id="ab" onclick="playAll()" disabled>🧬 全部器官疗愈 (1087条)</button>
+
+<div class="section-title">🧬 方案 <small id="pl">(18个)</small></div>
+<div class="program-list" id="progList"></div>
+<div class="freq-info" id="freqInfo"></div>
+
+<div class="section-title">⚡ 功率 <small id="pwLbl"></small></div>
+<div class="power-chips" id="pwChips"><span style="color:var(--text2);font-size:10px">请先选择方案</span></div>
+
+<div class="controls">
+  <button class="ctrl-btn loop on" id="lb" onclick="toggleLoop()">🔁循环</button>
+  <button class="ctrl-btn play" id="pb" onclick="togglePlay()" disabled>▶开始</button>
+  <button class="ctrl-btn stop" id="sb" onclick="stopTherapy()" style="display:none">⏹</button>
+</div>
+
+<div class="slider-row"><label>⏱间隔</label><input type="range" min="1.45" max="13.05" step="1.45" value="1.45" oninput="setI(this.value)"><span class="val" id="iv">1.45s</span></div>
+<div class="slider-row"><label>🔂重复</label><input type="range" min="1" max="20" step="1" value="1" oninput="setR(this.value)"><span class="val" id="rv">×1</span></div>
+<div class="slider-row" id="durRow" style="display:none"><label>⏳总时长</label><span class="val" id="dur" style="flex:1;text-align:left;font-size:13px;color:var(--accent)">—</span></div>
+
+<div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
+
+<div class="log-box" id="logBox"><div id="logContent"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let S={connected:false,playing:false,loop:true,sel:null,pw:null,iv:1.45,rp:1,theme:'dark'};
+
+async function api(path,method='GET',body=null){
+  let o={method,headers:{'Content-Type':'application/json'}};
+  if(body)o.body=JSON.stringify(body);
+  let r=await fetch(path,o);return r.json();
+}
+
+function p(){return S.programs&&S.programs[S.sel]||{}}
+
+async function init(){
+  try{let d=await api('/api/programs');S.programs=d;rp();document.getElementById('pl').textContent='('+Object.keys(d).length+'个)'}catch(e){toast('无法连接服务器')}
+  poll();setInterval(poll,2000);
+}
+async function poll(){
+  try{
+    let s=await api('/api/status');S.connected=s.connected;S.playing=s.playing;
+    if(s.program&&S.sel!==s.program){S.sel=s.program;rp();rpw()}
+    if(s.playing&&s.total>0)document.getElementById('pf').style.width=(s.current/s.total*100)+'%';
+    else if(!s.playing)document.getElementById('pf').style.width='0%';
+    u();
+  }catch(e){}
+}
+
+function u(){
+  let d=document.getElementById('dot'),st=document.getElementById('st'),cb=document.getElementById('cb'),
+      pb=document.getElementById('pb'),sb=document.getElementById('sb'),lb=document.getElementById('lb'),
+      ab=document.getElementById('ab');
+  d.className=S.playing?'status-dot play':S.connected?'status-dot on':'status-dot';
+  st.textContent=S.connected?'COM4 已连接':'未连接';
+  cb.textContent=S.connected?'🔌 断开':'🔌 连接 COM4';cb.className=S.connected?'connect-btn disconnect':'connect-btn connect';
+  ab.disabled=!S.connected;
+  pb.disabled=!S.connected||!S.sel;
+  if(S.playing){pb.style.display='none';sb.style.display='flex'}else{pb.style.display='flex';sb.style.display='none'}
+  lb.className=S.loop?'ctrl-btn loop on':'ctrl-btn loop';lb.textContent=S.loop?'🔁循环':'➡单次';
+  if(!S.playing)document.getElementById('ss').textContent='';
+}
+
+async function toggleConnect(){
+  if(S.connected){await api('/api/disconnect');S.connected=false;u();return}
+  let r=await api('/api/connect');S.connected=r.ok;u();toast(r.message);
+}
+
+function rp(){
+  if(!S.programs)return;
+  let ks=Object.keys(S.programs).sort((a,b)=>S.programs[a].b9-S.programs[b].b9);
+  document.getElementById('progList').innerHTML=ks.map(k=>{
+    let p=S.programs[k];
+    return `<div class="program-card${S.sel===k?' sel':''}" onclick="selProg('${k}')"><div class="r1"><span class="organ">${p.organ}</span><span class="freq">${p.freq_range}</span></div><div class="r2"><span>📡 ${p.command_count}条</span><span>⚡ ${p.power_levels.length}档</span></div></div>`;
+  }).join('');
+}
+function selProg(k){S.sel=k;S.pw=null;document.getElementById('freqInfo').textContent=p().freq_range||'';rp();rpw();u();updateDur()}
+function rpw(){
+  let c=document.getElementById('pwChips'),lbl=document.getElementById('pwLbl'),pr=S.sel?S.programs[S.sel]:null;
+  if(!pr||!pr.power_levels){c.innerHTML='<span style="color:var(--text2);font-size:10px">请先选择方案</span>';lbl.textContent='';return}
+  lbl.textContent='('+pr.power_levels.length+'档)';
+  c.innerHTML=pr.power_levels.map(l=>`<span class="power-chip${S.pw===l?' on':''}" onclick="selPw(${l})">${l}</span>`).join('');
+}
+function selPw(v){S.pw=S.pw===v?null:v;rpw()}
+
+async function togglePlay(){
+  if(S.playing){await api('/api/stop');S.playing=false;u();return}
+  if(!S.sel||!S.connected)return;
+  let r=await api('/api/play','POST',{program:S.sel,power:S.pw,loop:S.loop,repeat:S.rp,interval:S.iv});
+  if(r.ok){S.playing=true;u();toast('▶ '+r.message)}else{toast('❌ '+r.message)}
+}
+async function playAll(){
+  if(!S.connected)return;
+  let r=await api('/api/play-all','POST',{loop:S.loop,repeat:S.rp,interval:S.iv});
+  if(r.ok){S.sel=null;S.playing=true;u();toast('🧬 '+r.message)}else{toast('❌ '+r.message)}
+}
+async function stopTherapy(){await api('/api/stop');S.playing=false;u();document.getElementById('pf').style.width='0%'}
+
+function toggleLoop(){S.loop=!S.loop;u()}
+function setI(v){S.iv=parseFloat(v);document.getElementById('iv').textContent=v+'s';api('/api/interval','POST',{value:S.iv});updateDur()}
+function setR(v){S.rp=parseInt(v);document.getElementById('rv').textContent='×'+v;updateDur()}
+function updateDur(){
+  let r=document.getElementById('durRow'),d=document.getElementById('dur');
+  let n=S.sel&&S.programs?S.programs[S.sel]?S.programs[S.sel].command_count:0:0;
+  if(!n||!S.sel){r.style.display='none';return}
+  r.style.display='flex';
+  let sec=n*S.iv*S.rp, min=Math.floor(sec/60),s=Math.round(sec%60);
+  d.textContent=min+'分'+s+'秒  ('+n+'条×'+S.iv.toFixed(2)+'s×'+S.rp+')';
+}
+
+async function toggleLog(){
+  let b=document.getElementById('logBox'),c=document.getElementById('logContent');
+  if(b.style.display==='none'){b.style.display='block';try{let r=await api('/api/log');c.innerHTML=r.log.slice(-30).join('<br>')||'(空)'}catch(e){c.textContent='无法获取'}}
+  else b.style.display='none';
+}
+
+function toggleTheme(){
+  S.theme=S.theme==='dark'?'light':'dark';document.body.className=S.theme==='light'?'light':'';
+  document.getElementById('t').textContent=S.theme==='dark'?'🌙':'☀️';
+  try{localStorage.setItem('nls_m_theme',S.theme)}catch(e){}
+}
+function toast(m){let e=document.getElementById('toast');e.textContent=m;e.className='toast show';setTimeout(()=>e.className='toast',2200)}
+
+try{S.theme=localStorage.getItem('nls_m_theme')||'dark'}catch(e){}
+document.body.className=S.theme==='light'?'light':'';
+document.getElementById('t').textContent=S.theme==='dark'?'🌙':'☀️';
+init();
+</script>
+</body>
+</html>
