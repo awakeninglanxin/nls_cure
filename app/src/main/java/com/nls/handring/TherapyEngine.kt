@@ -19,6 +19,7 @@ class TherapyEngine(private val ctx: Context) {
     private var repeatCount = 1
     private var loopMode = true
     private var paused = false
+    private val buf = ByteArray(128)
 
     var onStatus: ((String) -> Unit)? = null
     var onProgress: ((Int, Int) -> Unit)? = null
