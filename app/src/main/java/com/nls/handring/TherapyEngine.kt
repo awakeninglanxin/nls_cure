@@ -167,7 +167,8 @@ class TherapyEngine(private val ctx: Context) {
             else append(" 异频")
         }
     }
-        val buf = ByteArray(128)
+
+    private fun sendRaw(cmd: Cmd) {
         buf[9] = cmd.b9.toByte(); buf[11] = cmd.b11.toByte()
         buf[13] = cmd.b13.toByte(); buf[15] = cmd.b15.toByte()
         try { connection?.bulkTransfer(epOut, buf, buf.size, 1000) } catch (_: Exception) {}
