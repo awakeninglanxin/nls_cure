@@ -105,8 +105,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </div>
 
 <div class="slider-row"><label>⏱间隔</label><input type="range" min="1.45" max="13.05" step="1.45" value="1.45" oninput="setI(this.value)"><span class="val" id="iv">1.45s</span></div>
-<div class="slider-row"><label>🔂重复</label><input type="range" min="1" max="20" step="1" value="1" oninput="setR(this.value)"><span class="val" id="rv">×1</span></div>
+<div class="slider-row"><label>🔂重复</label><input type="range" min="1" max="12" step="1" value="1" oninput="setR(this.value)"><span class="val" id="rv">×1</span></div>
 <div class="slider-row" id="durRow" style="display:none"><label>⏳总时长</label><span class="val" id="dur" style="flex:1;text-align:left;font-size:13px;color:var(--accent)">—</span></div>
+
+<div id="organDisplay" style="text-align:center;padding:8px;margin:0 12px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:bold;color:var(--accent);display:none">🧬 <span id="currOrgan">—</span></div>
 
 <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
 
@@ -136,6 +138,14 @@ async function poll(){
     if(s.program&&S.sel!==s.program){S.sel=s.program;rp();rpw()}
     if(s.playing&&s.total>0)document.getElementById('pf').style.width=(s.current/s.total*100)+'%';
     else if(!s.playing)document.getElementById('pf').style.width='0%';
+    // Show organ name
+    let od=document.getElementById('organDisplay');
+    if(s.playing&&s.organ){
+      od.style.display='block';
+      document.getElementById('currOrgan').textContent=s.organ+' | #'+(s.current||0)+'/'+s.total;
+    }else if(!s.playing){
+      od.style.display='none';
+    }
     u();
   }catch(e){}
 }

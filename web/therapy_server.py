@@ -125,11 +125,14 @@ class HandRing:
         return True, f"正在播放: {program_key} ({len(cmds)} 条命令, ×{repeat})"
 
     def play_all(self, loop=False, repeat=1):
-        """播放所有器官方案（1087条原始命令）"""
+        """播放所有器官方案（整轮重复N次）"""
         self.stop()
         all_cmds = []
         for key in sorted(programs.keys(), key=lambda k: programs[k]["b9"]):
-            all_cmds.extend(programs[key]["commands"])
+            organ_name = programs[key]["organ"]
+            for cmd in programs[key]["commands"]:
+                cmd["organ"] = organ_name
+                all_cmds.append(cmd)
         self._start_playing("全部器官", all_cmds, loop, repeat)
         return True, f"正在播放: 全部器官 ({len(all_cmds)} 条命令, ×{repeat})"
 
@@ -140,30 +143,30 @@ class HandRing:
         self.playing = True
 
         def _play():
-            idx = 0
+            round_num = 0
             while self.playing and cmds:
-                cmd = cmds[idx % len(cmds)]
-                self.current_index = idx + 1
-                # 每条命令重复发送 repeat 次
-                for r in range(repeat):
-                    if not self.playing:
-                        break
+                round_num += 1
+                if repeat > 1:
+                    self.log_entry(f"[🔄] {label} 第{round_num}/{repeat}轮")
+                idx = 0
+                while idx < len(cmds) and self.playing:
+                    cmd = cmds[idx]
+                    self.current_index = idx + 1
                     ok, msg = self.send_command(cmd["cmd_hex"])
-                    if r == 0 or repeat <= 1:
-                        f_mhz = cmd.get('freq_mhz', 0)
-                        b11 = cmd.get('b11', 0)
-                        ch1_amp = int(b11 * 100 / 172)
-                        self.log_entry(
-                            f"[{'▶' if ok else '⚠'}] {label} "
-                            f"#{idx+1}/{len(cmds)} CH1:{f_mhz:.0f}MHz {ch1_amp}% "
-                            f"b9={cmd['b9']} b11={cmd['b11']}"
-                            f"{cmd['freq_mhz']:.0f}MHz"
-                        )
-                    if r < repeat - 1:
-                        time.sleep(self.interval)
-                time.sleep(self.interval)
-                idx += 1
-                if not loop and idx >= len(cmds):
+                    f_mhz = cmd.get('freq_mhz', 0)
+                    b11 = cmd.get('b11', 0)
+                    ch1_amp = int(b11 * 100 / 172)
+                    organ_name = cmd.get('organ', label)
+                    self.current_organ = organ_name
+                    self.log_entry(
+                        f"[{'▶' if ok else '⚠'}] {organ_name} "
+                        f"#{idx+1}/{len(cmds)} CH1:{f_mhz:.0f}MHz {ch1_amp}% "
+                        f"b9={cmd['b9']} b11={cmd['b11']}"
+                    )
+                    time.sleep(self.interval)
+                    idx += 1
+                
+                if not loop and round_num >= repeat:
                     self.playing = False
                     self.log_entry("[■] 全部完成")
                     break
@@ -185,6 +188,7 @@ class HandRing:
             "connected": self.ser is not None and self.ser.is_open,
             "playing": self.playing,
             "program": self.current_program,
+            "organ": getattr(self, 'current_organ', ''),
             "current": self.current_index,
             "total": self.total_commands,
             "interval": self.interval,
