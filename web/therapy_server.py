@@ -18,45 +18,25 @@ except ImportError:
     serial = None
     print("[!] pyserial 未安装，COM4 不可用。运行: pip install pyserial")
 
-# FTDI 双通道初始化（解决 LED 同步闪烁问题）
+# FTDI 双通道初始化（CBUS BitBang → 解决 LED 同步闪烁）
 import ctypes
-import struct
-
-# FTDI IOCTL 控制码（通过串口 handle 发送）
 _FT_IOCTL_RESET = 0x00222004
 _FT_IOCTL_BAUD  = 0x00222008
 _FT_IOCTL_BIT   = 0x00222014
 
 def _configure_ftdi(ser):
-    """通过 DeviceIoControl 配置 FTDI 芯片的双通道/CBUS 模式"""
     try:
         k32 = ctypes.windll.kernel32
-        # 获取串口的 Windows 句柄
-        handle = getattr(ser, '_port_handle', None)
-        if not handle:
-            # 尝试通过 serialwin32 获取
-            if hasattr(ser, '_serial_handle'):
-                handle = ser._serial_handle
-        if not handle:
-            return False
-        
-        ret_bytes = ctypes.c_ulong()
-        
-        # 1. 复位设备
-        k32.DeviceIoControl(handle, _FT_IOCTL_RESET, None, 0, None, 0, ctypes.byref(ret_bytes), None)
-        
-        # 2. 设置波特率
-        baud_data = struct.pack('<I', 115200)
-        k32.DeviceIoControl(handle, _FT_IOCTL_BAUD, baud_data, 4, None, 0, ctypes.byref(ret_bytes), None)
-        
-        # 3. 启用 CBUS BitBang 模式（双通道 LED 输出关键！）
-        #    mask=0xFF (全部 CBUS 引脚), mode=0x40 (CBUS BitBang)
-        bit_data = struct.pack('<IB', 0xFF, 0x40)
-        k32.DeviceIoControl(handle, _FT_IOCTL_BIT, bit_data, len(bit_data), None, 0, ctypes.byref(ret_bytes), None)
-        
+        handle = getattr(ser, '_port_handle', None) or getattr(ser, '_serial_handle', None)
+        if not handle: return False
+        ret = ctypes.c_ulong()
+        k32.DeviceIoControl(handle, _FT_IOCTL_RESET, None, 0, None, 0, ctypes.byref(ret), None)
+        baud = struct.pack('<I', 115200)
+        k32.DeviceIoControl(handle, _FT_IOCTL_BAUD, baud, 4, None, 0, ctypes.byref(ret), None)
+        bit = struct.pack('<IB', 0xFF, 0x40)
+        k32.DeviceIoControl(handle, _FT_IOCTL_BIT, bit, len(bit), None, 0, ctypes.byref(ret), None)
         return True
-    except Exception:
-        return False
+    except: return False
 
 PORT = 8080
 DATA_DIR = os.path.join(os.path.dirname(__file__), "therapy_data")
@@ -93,7 +73,6 @@ class HandRing:
             return False, "pyserial 未安装"
         try:
             self.ser = serial.Serial(COM_PORT, BAUD, timeout=2)
-            # FTDI 双通道初始化（修复 LED 同步闪烁问题）
             if _configure_ftdi(self.ser):
                 self.log_entry("[OK] FTDI 双通道已配置")
             self.log_entry(f"[OK] COM4 已连接 {BAUD}bps")
