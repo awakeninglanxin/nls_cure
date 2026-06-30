@@ -137,7 +137,7 @@ class TherapyEngine(private val ctx: Context) {
                 if (!isPlaying) break
                 index++
                 onProgress?.invoke(index, cmds.size)
-                onStatus?.invoke("$label #$index/${cmds.size} CH1(${cmd.b9},${cmd.b11}) CH2(${cmd.b13},${cmd.b15})")
+                onStatus?.invoke("$label #$index/${cmds.size} | ${cmdInfo(cmd)}")
                 if (!loop && index >= cmds.size) { stop(); break }
                 delay(interval)
             }
@@ -154,7 +154,19 @@ class TherapyEngine(private val ctx: Context) {
 
     fun togglePause() { if (isPaused) resume() else pause() }
 
-    private fun sendRaw(cmd: Cmd) {
+    private fun cmdInfo(cmd: Cmd): String {
+        val f1 = 7.3728 * Math.pow(2.0, cmd.b9 / 4.0) * 3
+        val f2 = 7.3728 * Math.pow(2.0, cmd.b13 / 4.0) * 3
+        val a1 = cmd.b11 * 100 / 172
+        val a2 = cmd.b15 * 100 / 172
+        return buildString {
+            append(String.format("CH1:%.0fMHz %d%%", f1, a1))
+            append(String.format(" CH2:%.0fMHz %d%%", f2, a2))
+            if (cmd.b9 == cmd.b13 && cmd.b11 == cmd.b15) append(" 同相同幅")
+            else if (cmd.b9 == cmd.b13) append(" 同频异幅")
+            else append(" 异频")
+        }
+    }
         val buf = ByteArray(128)
         buf[9] = cmd.b9.toByte(); buf[11] = cmd.b11.toByte()
         buf[13] = cmd.b13.toByte(); buf[15] = cmd.b15.toByte()
