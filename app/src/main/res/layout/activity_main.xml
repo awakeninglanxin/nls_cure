@@ -42,11 +42,6 @@
             android:textSize="14sp" android:backgroundTint="#7c4dff"
             android:textAllCaps="false" android:enabled="false"/>
 
-        <ProgressBar android:id="@+id/progress_bar"
-            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-            android:layout_width="match_parent" android:layout_height="4dp"
-            android:layout_marginTop="10dp" android:progressTint="#00e5a0"/>
-
         <!-- Programs -->
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="器官方案 (18个)" android:textColor="#888" android:textSize="11sp"
@@ -54,6 +49,20 @@
         <LinearLayout android:id="@+id/program_list" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:orientation="vertical"
             android:background="#14141f"/>
+
+        <!-- Progress + Info -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:padding="8dp 0" android:layout_marginTop="8dp">
+            <ProgressBar android:id="@+id/progress_bar"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="0dp" android:layout_height="5dp"
+                android:layout_weight="1" android:progressTint="#00e5a0"/>
+        </LinearLayout>
+        <TextView android:id="@+id/therapy_info" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="准备就绪"
+            android:textColor="#7c4dff" android:textSize="11sp"
+            android:layout_marginTop="2dp" android:minHeight="16dp"/>
 
         <!-- Power -->
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"

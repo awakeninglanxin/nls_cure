@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var loopBtn: Button
     private lateinit var playAllBtn: Button
     private lateinit var progressBar: ProgressBar
+    private lateinit var therapyInfo: TextView
     private lateinit var intervalSeek: SeekBar
     private lateinit var intervalLabel: TextView
     private lateinit var repeatSeek: SeekBar
@@ -40,7 +41,7 @@ class MainActivity : AppCompatActivity() {
         buildProgramList()
         setupListeners()
 
-        engine.onStatus = { msg -> uiHandler.post { statusSub.text = msg } }
+        engine.onStatus = { msg -> uiHandler.post { statusSub.text = msg; therapyInfo.text = msg } }
         engine.onProgress = { cur, total ->
             uiHandler.post { progressBar.progress = (cur.toFloat() / total * 100).toInt() }
         }
@@ -60,6 +61,7 @@ class MainActivity : AppCompatActivity() {
         loopBtn = findViewById(R.id.loop_btn)
         playAllBtn = findViewById(R.id.playall_btn)
         progressBar = findViewById(R.id.progress_bar)
+        therapyInfo = findViewById(R.id.therapy_info)
         intervalSeek = findViewById(R.id.interval_seek)
         intervalLabel = findViewById(R.id.interval_label)
         repeatSeek = findViewById(R.id.repeat_seek)
