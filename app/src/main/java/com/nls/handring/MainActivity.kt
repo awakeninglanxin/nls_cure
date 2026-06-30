@@ -16,6 +16,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progLayout: LinearLayout
     private lateinit var powerContainer: LinearLayout
     private lateinit var playBtn: Button
+    private lateinit var pauseBtn: Button
     private lateinit var stopBtn: Button
     private lateinit var loopBtn: Button
     private lateinit var playAllBtn: Button
@@ -54,6 +55,7 @@ class MainActivity : AppCompatActivity() {
         progLayout = findViewById(R.id.program_list)
         powerContainer = findViewById(R.id.power_chips)
         playBtn = findViewById(R.id.play_btn)
+        pauseBtn = findViewById(R.id.pause_btn)
         stopBtn = findViewById(R.id.stop_btn)
         loopBtn = findViewById(R.id.loop_btn)
         playAllBtn = findViewById(R.id.playall_btn)
@@ -113,17 +115,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
         playBtn.setOnClickListener {
-            if (engine.isPlaying) { engine.stop(); updateUI(); return@setOnClickListener }
             val key = selProg ?: return@setOnClickListener
+            if (engine.isPlaying && engine.isPaused) { engine.resume(); updateUI(); return@setOnClickListener }
             engine.setInterval(intervalSeek.progress.toLong())
             engine.setRepeat(repeatSeek.progress)
             engine.playProgram(key, selPower, looping)
             updateUI()
         }
+        pauseBtn.setOnClickListener { engine.togglePause(); updateUI() }
         stopBtn.setOnClickListener { engine.stop(); updateUI() }
         loopBtn.setOnClickListener { looping = !looping; loopBtn.text = if (looping) "循环" else "单次" }
         playAllBtn.setOnClickListener {
-            if (engine.isPlaying) { engine.stop(); updateUI(); return@setOnClickListener }
+            if (engine.isPlaying && engine.isPaused) { engine.resume(); updateUI(); return@setOnClickListener }
             engine.setInterval(intervalSeek.progress.toLong())
             engine.setRepeat(repeatSeek.progress)
             engine.playAllPrograms(looping)
@@ -142,14 +145,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        val conn = engine.isConnected; val play = engine.isPlaying
+        val conn = engine.isConnected; val play = engine.isPlaying; val paused = engine.isPaused
         statusDot.setBackgroundResource(if (conn) android.R.color.holo_green_light else android.R.color.darker_gray)
         statusText.text = if (conn) "手环已连接" else "未连接"
         connectBtn.text = if (conn) "断开手环" else "连接手环 (USB OTG)"
-        playBtn.visibility = if (play) View.GONE else View.VISIBLE
-        stopBtn.visibility = if (play) View.VISIBLE else View.GONE
-        playBtn.isEnabled = conn && selProg != null
-        playAllBtn.isEnabled = conn && !play
+
+        // Play+Pause+Stop 三态切换
+        if (play) {
+            playBtn.visibility = if (paused) View.VISIBLE else View.GONE
+            pauseBtn.visibility = if (paused) View.GONE else View.VISIBLE
+            stopBtn.visibility = View.VISIBLE
+            playBtn.text = "继续"
+        } else {
+            playBtn.visibility = View.VISIBLE
+            pauseBtn.visibility = View.GONE
+            stopBtn.visibility = View.GONE
+            playBtn.text = "开始"
+        }
+        playBtn.isEnabled = conn && (selProg != null || play)
+        playAllBtn.isEnabled = conn
         if (!play) progressBar.progress = 0
     }
 

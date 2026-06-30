@@ -18,10 +18,13 @@ class TherapyEngine(private val ctx: Context) {
     private var interval = 500L
     private var repeatCount = 1
     private var loopMode = true
+    private var paused = false
 
     var onStatus: ((String) -> Unit)? = null
     var onProgress: ((Int, Int) -> Unit)? = null
     var isPlaying = false
+        private set
+    var isPaused = false
         private set
     var isConnected = false
         private set
@@ -48,11 +51,11 @@ class TherapyEngine(private val ctx: Context) {
         val devices = usbManager.deviceList.values
         device = devices.find { it.vendorId == 0x0403 && it.productId == 0x6001 }
             ?: devices.firstOrNull { it.vendorId == 0x0403 }
-        if (device == null) { callback(false, "未检测到 FTDI 设备\n请确认 OTG 线已连接手环"); return }
+        if (device == null) { callback(false, "未检测到 FTDI 设备"); return }
         if (!usbManager.hasPermission(device)) {
             permCallback = { granted -> if (granted) openDevice(callback) else callback(false, "USB 权限被拒绝") }
-            val pi = PendingIntent.getBroadcast(ctx, 0, Intent(actionUsbPermission), PendingIntent.FLAG_IMMUTABLE)
-            usbManager.requestPermission(device!!, pi)
+            usbManager.requestPermission(device!!, PendingIntent.getBroadcast(ctx, 0,
+                Intent(actionUsbPermission), PendingIntent.FLAG_IMMUTABLE))
             return
         }
         openDevice(callback)
@@ -61,7 +64,7 @@ class TherapyEngine(private val ctx: Context) {
     private fun openDevice(callback: (Boolean, String) -> Unit) {
         try {
             val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
-            connection = usbManager.openDevice(device!!) ?: run { callback(false, "无法打开 USB 设备"); return }
+            connection = usbManager.openDevice(device!!) ?: run { callback(false, "无法打开USB"); return }
             for (i in 0 until device!!.interfaceCount) {
                 val iface = device!!.getInterface(i)
                 if (!connection!!.claimInterface(iface, true)) continue
@@ -73,7 +76,7 @@ class TherapyEngine(private val ctx: Context) {
                 }
                 if (epOut != null) break
             }
-            if (epOut == null) { connection!!.close(); connection = null; callback(false, "未找到 USB 输出端点"); return }
+            if (epOut == null) { connection!!.close(); connection = null; callback(false, "未找到端点"); return }
             configureFtdi()
             isConnected = true
             callback(true, "手环已连接")
@@ -91,7 +94,13 @@ class TherapyEngine(private val ctx: Context) {
         connection?.controlTransfer(0x40, 0x03, 0x4138, 0, buf, buf.size, 1000)
     }
 
-    fun disconnect() { stop(); try { connection?.close() } catch (_: Exception) {}; connection = null; device = null; epOut = null; isConnected = false; onStatus?.invoke("已断开") }
+    fun disconnect() {
+        stop()
+        try { connection?.close() } catch (_: Exception) {}
+        connection = null; device = null; epOut = null
+        isConnected = false; isPlaying = false; isPaused = false
+        onStatus?.invoke("已断开")
+    }
 
     fun playProgram(programKey: String, powerLevel: Int?, loop: Boolean) {
         stop()
@@ -112,16 +121,20 @@ class TherapyEngine(private val ctx: Context) {
     }
 
     private fun startPlaying(label: String, cmdList: List<Cmd>, loop: Boolean) {
-        cmds = cmdList; index = 0; loopMode = loop; isPlaying = true
+        cmds = cmdList; index = 0; loopMode = loop; isPlaying = true; isPaused = false; paused = false
         job = CoroutineScope(Dispatchers.IO).launch {
             while (isPlaying && cmds.isNotEmpty()) {
+                // 等待暂停恢复
+                while (paused && isPlaying) { delay(200) }
+                if (!isPlaying) break
+
                 val cmd = cmds[index % cmds.size]
-                // 每条命令重复 repeatCount 次
                 for (r in 0 until repeatCount) {
-                    if (!isPlaying) break
+                    if (!isPlaying || paused) break
                     sendRaw(cmd)
                     if (r < repeatCount - 1) delay(interval)
                 }
+                if (!isPlaying) break
                 index++
                 onProgress?.invoke(index, cmds.size)
                 onStatus?.invoke("$label #$index/${cmds.size} CH1(${cmd.b9},${cmd.b11}) CH2(${cmd.b13},${cmd.b15})")
@@ -131,13 +144,36 @@ class TherapyEngine(private val ctx: Context) {
         }
     }
 
+    fun pause() {
+        if (isPlaying && !isPaused) { paused = true; isPaused = true; onStatus?.invoke("⏸ 已暂停") }
+    }
+
+    fun resume() {
+        if (isPlaying && isPaused) { paused = false; isPaused = false; onStatus?.invoke("▶ 已继续") }
+    }
+
+    fun togglePause() { if (isPaused) resume() else pause() }
+
     private fun sendRaw(cmd: Cmd) {
         val buf = ByteArray(128)
-        buf[9] = cmd.b9.toByte(); buf[11] = cmd.b11.toByte(); buf[13] = cmd.b13.toByte(); buf[15] = cmd.b15.toByte()
+        buf[9] = cmd.b9.toByte(); buf[11] = cmd.b11.toByte()
+        buf[13] = cmd.b13.toByte(); buf[15] = cmd.b15.toByte()
         try { connection?.bulkTransfer(epOut, buf, buf.size, 1000) } catch (_: Exception) {}
     }
 
-    fun stop() { isPlaying = false; job?.cancel(); job = null; index = 0; cmds = emptyList() }
+    fun stop() {
+        isPlaying = false; isPaused = false; paused = false
+        job?.cancel(); job = null
+        // 发送关闭命令（全零128字节，关闭LED）
+        try {
+            val zero = ByteArray(128)
+            connection?.bulkTransfer(epOut, zero, zero.size, 500)
+        } catch (_: Exception) {}
+        index = 0; cmds = emptyList()
+        onProgress?.invoke(0, 0)
+        onStatus?.invoke("⏹ 已停止")
+    }
+
     fun setInterval(ms: Long) { interval = ms }
     fun setRepeat(n: Int) { repeatCount = n.coerceIn(1, 20) }
     fun destroy() { disconnect(); try { ctx.unregisterReceiver(usbReceiver) } catch (_: Exception) {} }
