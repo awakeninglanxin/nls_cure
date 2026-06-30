@@ -52,7 +52,7 @@
             android:text="器官方案 (18个)" android:textColor="#888" android:textSize="11sp"
             android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
         <LinearLayout android:id="@+id/program_list" android:layout_width="match_parent"
-            android:layout_height="280dp" android:orientation="vertical"
+            android:layout_height="wrap_content" android:orientation="vertical"
             android:background="#14141f"/>
 
         <!-- Power -->
